@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGPA Calculator</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+
+.subject{
+    border:1px solid #ccc;
+    padding:15px;
+    margin:10px 0;
+    border-radius:8px;
+}
+
+input, select, button{
+    padding:8px;
+    margin:5px;
+}
+
+button{
+    cursor:pointer;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+table, th, td{
+    border:1px solid black;
+}
+
+th, td{
+    padding:10px;
+    text-align:center;
+}
+
+#sgpa{
+    font-size:24px;
+    font-weight:bold;
+    text-align:center;
+    margin-top:20px;
+}
+</style>
+</head>
+<body>
+
+<h1>SGPA Calculator</h1>
+
+<label>Number of Subjects:</label>
+<input type="number" id="numSubjects" min="1">
+<button onclick="generateSubjects()">Create Subjects</button>
+
+<br><br>
+
+<label>Do you have a 1 Credit Course?</label>
+<select id="oneCreditChoice" onchange="toggleOneCredit()">
+    <option value="yes" selected>Yes</option>
+    <option value="no">No</option>
+</select>
+<div id="oneCreditDiv" style="display:none;">
+    <br>
+    <label>1 Credit Course Grade:</label>
+    <select id="oneCreditGrade">
+        <option>O</option>
+        <option>A+</option>
+        <option>A</option>
+        <option>B+</option>
+        <option>B</option>
+        <option>C</option>
+        <option>F</option>
+    </select>
+</div>
+
+<div id="subjectsContainer"></div>
+
+<button onclick="calculateSGPA()">Calculate SGPA</button>
+
+<div id="result"></div>
+<div id="sgpa"></div>
+
+<script>
+
+const gradePoints = {
+    "O": 10,
+    "A+": 9,
+    "A": 8,
+    "B+": 7,
+    "B": 6,
+    "C": 5,
+    "F": 0
+};
+
+function getGrade(point){
+    if(point >= 9.5) return "O";
+    if(point >= 8.5) return "A+";
+    if(point >= 7.5) return "A";
+    if(point >= 6.5) return "B+";
+    if(point >= 5.5) return "B";
+    if(point >= 4.5) return "C";
+    return "F";
+}
+
+function toggleOneCredit(){
+    let choice = document.getElementById("oneCreditChoice").value;
+
+    document.getElementById("oneCreditDiv").style.display =
+        choice === "yes" ? "block" : "none";
+}
+
+function generateSubjects(){
+
+    let n = document.getElementById("numSubjects").value;
+    let container = document.getElementById("subjectsContainer");
+
+    container.innerHTML = "";
+
+    for(let i = 1; i <= n; i++){
+
+        container.innerHTML += `
+        <div class="subject">
+
+            <h3>Subject ${i}</h3>
+
+            <label>Credits:</label>
+            <input type="number" id="credit${i}" min="1">
+
+            <br><br>
+
+            <label>Sessional 1:</label>
+            <select id="s1${i}">
+                <option>O</option>
+                <option>A+</option>
+                <option>A</option>
+                <option>B+</option>
+                <option>B</option>
+                <option>C</option>
+                <option>F</option>
+            </select>
+
+            <label>Sessional 2:</label>
+            <select id="s2${i}">
+                <option>O</option>
+                <option>A+</option>
+                <option>A</option>
+                <option>B+</option>
+                <option>B</option>
+                <option>C</option>
+                <option>F</option>
+            </select>
+
+            <label>LE:</label>
+            <select id="le${i}">
+                <option>O</option>
+                <option>A+</option>
+                <option>A</option>
+                <option>B+</option>
+                <option>B</option>
+                <option>C</option>
+                <option>F</option>
+            </select>
+
+        </div>
+        `;
+    }
+}
+
+function calculateSGPA(){
+
+    let n = document.getElementById("numSubjects").value;
+
+    let totalCredits = 0;
+    let totalPoints = 0;
+
+    let table = `
+    <table>
+        <tr>
+            <th>Subject</th>
+            <th>Credits</th>
+            <th>Final Point</th>
+            <th>Final Grade</th>
+        </tr>
+    `;
+
+    for(let i = 1; i <= n; i++){
+
+        let credit = Number(document.getElementById(`credit${i}`).value);
+
+        let s1 = gradePoints[document.getElementById(`s1${i}`).value];
+        let s2 = gradePoints[document.getElementById(`s2${i}`).value];
+        let le = gradePoints[document.getElementById(`le${i}`).value];
+
+        let finalPoint =
+            (s1 * 0.30) +
+            (s2 * 0.45) +
+            (le * 0.25);
+
+        let finalGrade = getGrade(finalPoint);
+
+        totalCredits += credit;
+        totalPoints += credit * finalPoint;
+
+        table += `
+        <tr>
+            <td>Subject ${i}</td>
+            <td>${credit}</td>
+            <td>${finalPoint.toFixed(2)}</td>
+            <td>${finalGrade}</td>
+        </tr>
+        `;
+    }
+
+    let hasOneCredit =
+        document.getElementById("oneCreditChoice").value === "yes";
+
+    if(hasOneCredit){
+
+        let grade =
+            document.getElementById("oneCreditGrade").value;
+
+        let point = gradePoints[grade];
+
+        totalCredits += 1;
+        totalPoints += point;
+
+        table += `
+        <tr>
+            <td>1 Credit Course</td>
+            <td>1</td>
+            <td>${point.toFixed(2)}</td>
+            <td>${grade}</td>
+        </tr>
+        `;
+    }
+
+    table += "</table>";
+
+    let sgpa = totalPoints / totalCredits;
+
+    document.getElementById("result").innerHTML = table;
+
+    document.getElementById("sgpa").innerHTML =
+        "Final SGPA: " + sgpa.toFixed(2);
+}
+
+</script>
+
+</body>
+</html>
