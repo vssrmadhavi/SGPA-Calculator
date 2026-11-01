@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"> 
+<title>SGPA Calculator</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f3;
+    padding: 20px;
+}
+.container {
+    background: #fff;
+    padding: 20px;
+    max-width: 1200px;
+    margin: auto;
+    border-radius: 8px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    text-align: center;
+}
+select, input {
+    width: 100%;
+    padding: 5px;
+}
+button {
+    margin-top: 15px;
+    padding: 10px;
+    width: 100%;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+.result {
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+.invalid {
+    color: red;
+}
+.summary {
+    margin-top: 15px;
+    padding: 10px;
+    background: #f7f9fa;
+    border-radius: 6px;
+}
+.hidden {
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2 align="center">SGPA Calculator</h2>
+
+<!-- STEP 1 -->
+<label><b>Number of Subjects:</b></label>
+<input type="number" id="numSubjects" min="1" max="10" placeholder="Enter number of subjects">
+<br><br>
+
+<label><b>Do you have 1-credit CLAD subject?</b></label>
+<select id="hasClad">
+    <option value="">--Select--</option>
+    <option value="yes">Yes</option>
+    <option value="no">No</option>
+</select>
+
+<button onclick="generateTable()">Proceed</button>
+
+<!-- TABLE -->
+<table id="subjectTable" class="hidden">
+<thead>
+<tr>
+<th>Subject</th>
+<th>S1</th>
+<th>S2</th>
+<th>LE</th>
+<th>Credit</th>
+<th>Overall Grade</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<!-- 1 CREDIT SUBJECT -->
+<div id="cladDiv" class="hidden">
+<br>
+<label><b>1 Credit Subject (CLAD Grade)</b></label>
+<select id="oneCredit">
+    <option value="">--Select--</option>
+    <option value="10">O</option>
+    <option value="9">A+</option>
+    <option value="8">A</option>
+    <option value="7">B+</option>
+    <option value="6">B</option>
+    <option value="5">C</option>
+</select>
+</div>
+
+<button id="calcBtn" class="hidden" onclick="calculateSGPA()">Calculate SGPA</button>
+
+<div class="summary">
+    <div class="result" id="totalCredits"></div>
+    <div class="result" id="cgp"></div>
+    <div class="result" id="sgpa"></div>
+</div>
+
+</div>
+
+<script>
+const gradeOptions = `
+<option value="">--Select--</option>
+<option value="I">I</option>
+<option value="10">O</option>
+<option value="9">A+</option>
+<option value="8">A</option>
+<option value="7">B+</option>
+<option value="6">B</option>
+<option value="5">C</option>
+`;
+
+function convertGP(raw) {
+    if (raw > 9 && raw <= 10) return { grade: "O", gp: 10 };
+    if (raw > 8 && raw <= 9)  return { grade: "A+", gp: 9 };
+    if (raw > 7 && raw <= 8)  return { grade: "A", gp: 8 };
+    if (raw > 6 && raw <= 7)  return { grade: "B+", gp: 7 };
+    if (raw > 5 && raw <= 6)  return { grade: "B", gp: 6 };
+    return { grade: "C", gp: 5 };
+}
+
+function generateTable() {
+    let n = document.getElementById("numSubjects").value;
+    let clad = document.getElementById("hasClad").value;
+
+    if (!n || !clad) {
+        alert("Please fill all details");
+        return;
+    }
+
+    let tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    for (let i = 1; i <= n; i++) {
+        tbody.innerHTML += `
+        <tr>
+            <td>Subject ${i}</td>
+            <td><select class="s1" onchange="calcSubject(this)">${gradeOptions}</select></td>
+            <td><select class="s2" onchange="calcSubject(this)">${gradeOptions}</select></td>
+            <td><select class="le" onchange="calcSubject(this)">${gradeOptions}</select></td>
+            <td>
+                <select class="credit">
+                    <option value="">--</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </td>
+            <td class="overall" data-gp="">--</td>
+        </tr>`;
+    }
+
+    document.getElementById("subjectTable").classList.remove("hidden");
+    document.getElementById("calcBtn").classList.remove("hidden");
+    document.getElementById("cladDiv").classList.toggle("hidden", clad === "no");
+}
+
+function calcSubject(el) {
+    let row = el.closest("tr");
+    let s1 = row.querySelector(".s1").value;
+    let s2 = row.querySelector(".s2").value;
+    let le = row.querySelector(".le").value;
+    let cell = row.querySelector(".overall");
+
+    if (!s1 || !s2 || !le) {
+        cell.innerHTML = "--";
+        cell.dataset.gp = "";
+        return;
+    }
+
+    if (s1 === "I" && s2 === "I") {
+        cell.innerHTML = "<span class='invalid'>Invalid</span>";
+        cell.dataset.gp = "";
+        return;
+    }
+
+    let rawGP = 0;
+    if (s1 !== "I") rawGP += parseInt(s1) * 0.30;
+    if (s2 !== "I") rawGP += parseInt(s2) * 0.45;
+    if (le !== "I") rawGP += parseInt(le) * 0.25;
+
+    let conv = convertGP(rawGP);
+    cell.dataset.gp = conv.gp;
+    cell.innerHTML = conv.grade;
+}
+
+function calculateSGPA() {
+    let rows = document.querySelectorAll("#tableBody tr");
+    let totalCredits = 0;
+    let cumulativeGP = 0;
+
+    for (let row of rows) {
+        let gp = row.querySelector(".overall").dataset.gp;
+        let credit = row.querySelector(".credit").value;
+
+        if (!gp || !credit) {
+            alert("Complete all subject details");
+            return;
+        }
+
+        cumulativeGP += parseInt(gp) * parseInt(credit);
+        totalCredits += parseInt(credit);
+    }
+
+    if (document.getElementById("hasClad").value === "yes") {
+        let one = document.getElementById("oneCredit").value;
+        if (!one) {
+            alert("Select CLAD grade");
+            return;
+        }
+        cumulativeGP += parseInt(one) * 1;
+        totalCredits += 1;
+    }
+
+    let sgpa = cumulativeGP / totalCredits;
+
+    document.getElementById("totalCredits").innerHTML =
+        "Total Credits = <b>" + totalCredits + "</b>";
+    document.getElementById("cgp").innerHTML =
+        "Cumulative Grade Points = <b>" + cumulativeGP + "</b>";
+    document.getElementById("sgpa").innerHTML =
+        "SGPA = <b>" + sgpa.toFixed(2) + "</b>";
+}
+</script>
+
+<footer style="text-align:center; margin-top:20px; font-weight:bold;">
+    by rnmboy: follow chey bro entertainment plus education mix kotti istam
+</footer>
+
+</body>
+</html>
